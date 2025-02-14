@@ -190,7 +190,7 @@ export function DashboardOverview({ accounts, transactions }) {
             </div>
           )}
         </CardContent>
-      </Card>
+      </Card> 
     </div>
   );
 }
