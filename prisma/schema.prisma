@@ -9,40 +9,72 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
+// Better Auth core models
+model Session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-model User {
-  id            String    @id @default(uuid())
-  clerkUserId   String    @unique // clerk user id
-  email         String    @unique
-  name          String?
-  imageUrl      String?
-  transactions  Transaction[]
-  accounts      Account[]
-  budgets       Budget[]
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
-  @@map("users")
+  @@map("sessions")
 }
 
-model Account {
-  id           String        @id @default(uuid())
-  name         String
-  type         AccountType
-  balance      Decimal       @default(0) // will ask inital balance while creating an account
-  isDefault    Boolean       @default(false)
-  userId       String
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions Transaction[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+// OAuth provider accounts (renamed to avoid clashing with the app's bank Account)
+model AuthAccount {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   @@index([userId])
-  @@map("accounts")
+  @@map("auth_accounts")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("verifications")
+}
+
+model User {
+  id            String         @id @default(cuid())
+  name          String?
+  email         String         @unique
+  emailVerified Boolean        @default(false)
+  image         String?
+  transactions  Transaction[]
+  budgets       Budget[]
+  sessions      Session[]
+  authAccounts  AuthAccount[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@map("users")
 }
 
 model Transaction {
@@ -60,13 +92,10 @@ model Transaction {
   status           TransactionStatus  @default(COMPLETED)
   userId           String
   user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  accountId        String
-  account          Account           @relation(fields: [accountId], references: [id], onDelete: Cascade)
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
   @@index([userId])
-  @@index([accountId])
   @@map("transactions")
 }
 
@@ -87,11 +116,6 @@ model Budget {
 enum TransactionType {
   INCOME
   EXPENSE
-}
-
-enum AccountType {
-  CURRENT
-  SAVINGS
 }
 
 enum TransactionStatus {
