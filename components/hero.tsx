@@ -1,61 +1,60 @@
-"use client";
-
-import React, { useEffect, useRef } from "react";
+﻿import React from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import { ArrowRight, Play, Sparkles } from "lucide-react";
 import Link from "next/link";
 
 const HeroSection = () => {
-  const imageRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const imageElement = imageRef.current!;
-
-    const handleScroll = () => {
-      const scrollPosition = window.scrollY;
-      const scrollThreshold = 100;
-
-      if (scrollPosition > scrollThreshold) {
-        imageElement.classList.add("scrolled");
-      } else {
-        imageElement.classList.remove("scrolled");
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
   return (
-    <section className="pt-40 pb-20 px-4">
-      <div className="container mx-auto text-center">
-        <h1 className="text-5xl md:text-8xl lg:text-[105px] pb-6 gradient-title">
-          Manage Your Finances <br /> with Intelligence
+    <section className="relative overflow-hidden border-b border-border bg-grain">
+      <div className="container relative mx-auto px-4 pb-14 pt-16 text-center sm:pt-24">
+        <div className="animate-rise mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-background/85 px-4 py-1.5 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur">
+          <Sparkles size={14} className="text-tertiary" />
+          AI money coaching, in plain English
+        </div>
+
+        <h1 className="animate-rise text-balance text-4xl font-bold text-foreground sm:text-6xl lg:text-7xl">
+          Wealth
+          <br />
+          <span className="text-gradient-brand">money management with intelligence.</span>
         </h1>
-        <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-          An AI-powered financial management platform that helps you track,
-          analyze, and optimize your spending with real-time insights.
+
+        <p className="animate-rise mx-auto mt-6 max-w-2xl text-balance text-lg text-muted-foreground">
+          Describe how you spend and your AI coach builds a budget, runs the
+          math, and shows you exactly where to save.
         </p>
-        <div className="flex justify-center space-x-4">
+
+        <div className="animate-rise mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link href="/dashboard">
-            <Button size="lg" className="px-8">
-              Get Started
+            <Button size="lg" className="h-12 gap-2 px-7 text-base">
+              Get started free
+              <ArrowRight size={18} />
             </Button>
           </Link>
-          <Link href="https://www.youtube.com/watch?v=HhmpiirwQyk">
-            <Button size="lg" variant="outline" className="px-8">
-              Watch Demo
+          <Link href="/assistant">
+            <Button
+              size="lg"
+              variant="outline"
+              className="h-12 gap-2 px-7 text-base"
+            >
+              <Play size={16} />
+              Try Money Chat
             </Button>
           </Link>
         </div>
-        <div className="hero-image-wrapper mt-5 md:mt-0">
-          <div ref={imageRef} className="hero-image">
+
+        <div className="relative mx-auto mt-16 max-w-5xl">          <div className="relative overflow-hidden rounded-lg border border-border bg-card shadow-2xl shadow-primary/10">
+            <div className="flex items-center gap-1.5 border-b border-border bg-muted/60 px-4 py-3">
+              <span className="h-3 w-3 rounded-full bg-destructive/60" />
+              <span className="h-3 w-3 rounded-full bg-tertiary/70" />
+              <span className="h-3 w-3 rounded-full bg-primary/70" />
+            </div>
             <Image
               src="/banner.jpg"
               width={1280}
               height={720}
-              alt="Dashboard Preview"
-              className="rounded-lg shadow-2xl border mx-auto"
+              alt="Wealth dashboard preview"
+              className="h-auto w-full"
               priority
             />
           </div>
@@ -66,3 +65,4 @@ const HeroSection = () => {
 };
 
 export default HeroSection;
+

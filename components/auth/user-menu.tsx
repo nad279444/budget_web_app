@@ -54,7 +54,7 @@ const UserMenu = ({ name, email, image }: UserMenuProps) => {
             className="h-10 w-10 rounded-full object-cover"
           />
         ) : (
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-sm font-medium text-white">
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground">
             {initials}
           </span>
         )}

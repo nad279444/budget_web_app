@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect } from "react";
 import { useForm, type DefaultValues } from "react-hook-form";
@@ -134,7 +134,7 @@ export function AddTransactionForm({
       router.push("/dashboard");
       router.refresh();
     }
-  }, [transactionResult, transactionLoading, editMode, router]);
+  }, [transactionResult, transactionLoading, editMode, reset, router]);
 
   const type = watch("type");
   const isRecurring = watch("isRecurring");

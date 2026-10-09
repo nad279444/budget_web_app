@@ -45,6 +45,41 @@ export const createBudgetArgsSchema = z.object({
     .describe("Proposed total monthly budget in the user's currency"),
 });
 
+export const createTransactionArgsSchema = z
+  .object({
+    type: z
+      .enum(["INCOME", "EXPENSE"])
+      .describe("Whether this is money in (INCOME) or money out (EXPENSE)"),
+    amount: z
+      .number()
+      .positive("Amount must be greater than zero")
+      .describe("The exact amount in the user's currency"),
+    description: z
+      .string()
+      .min(1)
+      .max(300)
+      .nullable()
+      .describe("Short description or merchant name, e.g. 'Groceries at Shoprite'"),
+    category: z
+      .string()
+      .min(1)
+      .describe("One of the valid category ids from the expense/income category map"),
+    date: z
+      .string()
+      .nullable()
+      .describe("The date of the transaction as an ISO string (YYYY-MM-DD). Defaults to today"),
+  })
+  .superRefine((data, ctx) => {
+    const ids = data.type === "EXPENSE" ? expenseCategoryIds : incomeCategoryIds;
+    if (!ids.includes(data.category)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["category"],
+        message: `Must be one of: ${ids.join(", ")}`,
+      });
+    }
+  });
+
 export const spendingHabitSchema = z.object({
   category: z.enum(expenseCategoryIds, { error: "Must be a valid expense category" }),
   amount: z
@@ -87,6 +122,14 @@ export const assistantInsightsSchema = z.object({
 });
 
 export const assistantReplySchema = z.object({
+  summary: z
+    .string()
+    .min(5, "Reply is too short")
+    .max(1500, "Reply is too long")
+    .describe(
+      "Your main reply to the user in Savvy Sal's voice. Write this FIRST — it is streamed " +
+        "to the user while the rest of the structured reply is still being generated."
+    ),
   reasoning: z
     .string()
     .min(1, "Reply must include your step-by-step calculation")
@@ -98,11 +141,6 @@ export const assistantReplySchema = z.object({
         "monthly figure: 300 × 52 ÷ 12 = 1,300 cedis.\"). This mirrors the calculator calls " +
         "you actually ran, ending with the total."
     ),
-  summary: z
-    .string()
-    .min(5, "Reply is too short")
-    .max(1500, "Reply is too long")
-    .describe("Your main reply to the user in Savvy Sal's voice"),
   habits: z
     .array(spendingHabitSchema)
     .describe(

@@ -3,18 +3,25 @@
 import { useState } from "react";
 import { Bot, Lightbulb, Send, Sparkles, User, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
-import { chatWithAssistant } from "@/actions/assistant";
 import { Button } from "@/components/ui/button";
 import { formatMoney, type Currency } from "@/lib/ai/currency";
 import type { AssistantReply } from "@/lib/ai/schemas";
 
+type AssistantData = AssistantReply & {
+  budgetSaved: boolean;
+  transactionsRecorded: number;
+  currency: Currency;
+};
+
 type ChatMessage =
   | { role: "user"; content: string }
-  | {
-      role: "assistant";
-      content: string;
-      data?: AssistantReply & { budgetSaved: boolean; currency: Currency };
-    };
+  | { role: "assistant"; content: string; data?: AssistantData };
+
+type StreamEvent =
+  | { type: "status"; message: string }
+  | { type: "summary"; text: string }
+  | { type: "done"; data: AssistantData }
+  | { type: "error"; error: string };
 
 const SUGGESTIONS = [
   "I spend $1,800 on rent, $300 on groceries, and about $200 eating out every month",
@@ -46,6 +53,8 @@ const AssistantChat = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState("");
+  const [streamingText, setStreamingText] = useState("");
 
   const sendMessage = async (content: string) => {
     const trimmed = content.trim();
@@ -54,41 +63,93 @@ const AssistantChat = () => {
     setMessages((prev) => [...prev, { role: "user", content: trimmed }]);
     setInput("");
     setLoading(true);
+    setStatus("Connecting…");
+    setStreamingText("");
+
+    let done = false;
 
     try {
-      const result = await chatWithAssistant(trimmed);
+      const response = await fetch("/api/assistant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: trimmed }),
+      });
 
-      if (result.success && result.data) {
-        const data = result.data;
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: "assistant",
-            content: data.summary,
-            data,
-          },
-        ]);
-      } else if (!result.success) {
-        toast.error(result.error || "Something went wrong");
-      } else {
-        toast.error("Sorry, I couldn't process that. Try rephrasing.");
+      if (!response.ok || !response.body) {
+        const text = await response.text().catch(() => "");
+        throw new Error(text || "The assistant is unavailable right now");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      const handleEvent = (event: StreamEvent) => {
+        if (event.type === "status") {
+          setStatus(event.message);
+        } else if (event.type === "summary") {
+          setStreamingText(event.text);
+        } else if (event.type === "done") {
+          done = true;
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "assistant",
+              content: event.data.summary,
+              data: event.data,
+            },
+          ]);
+        } else if (event.type === "error") {
+          done = true;
+          toast.error(event.error || "Something went wrong");
+        }
+      };
+
+      // Server-sent events arrive as `data: <json>\n\n` blocks.
+      for (;;) {
+        const { done: streamDone, value } = await reader.read();
+        if (streamDone) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        let boundary = buffer.indexOf("\n\n");
+        while (boundary !== -1) {
+          const chunk = buffer.slice(0, boundary);
+          buffer = buffer.slice(boundary + 2);
+          const line = chunk
+            .split("\n")
+            .find((entry) => entry.startsWith("data:"));
+          if (line) {
+            try {
+              handleEvent(JSON.parse(line.slice(5).trim()) as StreamEvent);
+            } catch {
+              // ignore malformed frame
+            }
+          }
+          boundary = buffer.indexOf("\n\n");
+        }
+      }
+
+      if (!done) {
+        toast.error("The assistant stopped unexpectedly. Try again.");
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Something went wrong");
+      toast.error(
+        error instanceof Error ? error.message : "Something went wrong"
+      );
     } finally {
       setLoading(false);
+      setStatus("");
+      setStreamingText("");
     }
   };
 
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h1 className="text-2xl font-semibold text-gray-900">
-          Money Chat
-        </h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Describe how you spend money and I&apos;ll build you a budget, run
-          the numbers, and point out savings.
+        <h1 className="text-2xl font-semibold tracking-tight">Money Chat</h1>
+        <p className="mx-auto mt-1 max-w-xl text-sm text-muted-foreground">
+          Describe how you spend money and I&apos;ll build you a budget, run the
+          numbers, and point out savings.
         </p>
       </div>
 
@@ -96,7 +157,7 @@ const AssistantChat = () => {
       <div className="space-y-4">
         {messages.length === 0 && !loading && (
           <div className="space-y-2">
-            <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Try one of these
             </p>
             {SUGGESTIONS.map((suggestion) => (
@@ -104,7 +165,7 @@ const AssistantChat = () => {
                 key={suggestion}
                 type="button"
                 onClick={() => sendMessage(suggestion)}
-                className="block w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-left text-sm text-gray-600 transition-colors hover:border-blue-400 hover:text-blue-600"
+                className="block w-full rounded-xl border border-border bg-card px-4 py-3 text-left text-sm text-muted-foreground transition-colors hover:border-primary hover:text-primary"
               >
                 {suggestion}
               </button>
@@ -118,16 +179,33 @@ const AssistantChat = () => {
 
         {loading && (
           <div className="flex justify-start">
-            <div className="flex items-center gap-2 rounded-2xl rounded-bl-md border border-gray-200 bg-white px-4 py-3">
-              <span className="h-2 w-2 animate-bounce rounded-full bg-blue-400" />
-              <span
-                className="h-2 w-2 animate-bounce rounded-full bg-blue-400"
-                style={{ animationDelay: "150ms" }}
-              />
-              <span
-                className="h-2 w-2 animate-bounce rounded-full bg-blue-400"
-                style={{ animationDelay: "300ms" }}
-              />
+            <div className="flex max-w-[85%] items-end gap-2">
+              <span className="mb-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
+                <Bot size={14} />
+              </span>
+              <div className="rounded-2xl rounded-bl-md border border-border bg-card px-4 py-3 text-sm text-card-foreground">
+                {streamingText ? (
+                  <span className="whitespace-pre-line">
+                    {streamingText}
+                    <span className="ml-0.5 inline-block h-3.5 w-1.5 animate-pulse rounded-sm bg-primary align-middle" />
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-3 text-muted-foreground">
+                    <span className="flex gap-1">
+                      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary" />
+                      <span
+                        className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary"
+                        style={{ animationDelay: "150ms" }}
+                      />
+                      <span
+                        className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary"
+                        style={{ animationDelay: "300ms" }}
+                      />
+                    </span>
+                    {status && <span className="text-xs">{status}</span>}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -145,10 +223,10 @@ const AssistantChat = () => {
           value={input}
           onChange={(event) => setInput(event.target.value)}
           placeholder="Tell me how you spend your money..."
-          className="h-11 flex-1 rounded-lg border border-gray-300 bg-white px-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="h-11 flex-1 rounded-xl border border-input bg-background px-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
           disabled={loading}
         />
-        <Button type="submit" size="lg" className="h-11 px-5" disabled={loading}>
+        <Button type="submit" size="lg" className="h-11 gap-2 px-5" disabled={loading}>
           <Send size={16} />
           <span className="hidden sm:inline">Send</span>
         </Button>
@@ -162,11 +240,11 @@ const MessageBubble = ({ message }: { message: ChatMessage }) => {
     return (
       <div className="flex justify-end">
         <div className="flex max-w-[85%] items-end gap-2">
-          <div className="rounded-2xl rounded-br-md bg-blue-600 px-4 py-3 text-sm text-white">
+          <div className="rounded-2xl rounded-br-md bg-primary px-4 py-3 text-sm text-primary-foreground">
             {message.content}
           </div>
-          <span className="mb-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100">
-            <User size={14} className="text-blue-600" />
+          <span className="mb-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground">
+            <User size={14} />
           </span>
         </div>
       </div>
@@ -179,30 +257,40 @@ const MessageBubble = ({ message }: { message: ChatMessage }) => {
     <div className="flex justify-start">
       <div className="max-w-[85%] space-y-3">
         <div className="flex items-end gap-2">
-          <span className="mb-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100">
-            <Bot size={14} className="text-emerald-600" />
+          <span className="mb-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
+            <Bot size={14} />
           </span>
-          <div className="rounded-2xl rounded-bl-md border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800">
+          <div className="rounded-2xl rounded-bl-md border border-border bg-card px-4 py-3 text-sm text-card-foreground">
             {message.content}
           </div>
         </div>
 
         {data && (
           <div className="ml-9 space-y-3">
+            {data.transactionsRecorded > 0 && (
+              <div className="flex items-center gap-2 text-xs font-medium text-primary">
+                <CheckCircle2 size={14} className="text-primary" />
+                Recorded {data.transactionsRecorded}{" "}
+                {data.transactionsRecorded === 1
+                  ? "transaction"
+                  : "transactions"}
+              </div>
+            )}
+
             {data.reasoning && (
-              <details className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-                <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-gray-500">
+              <details className="rounded-xl border border-border bg-muted/50 p-4">
+                <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   How I did the math
                 </summary>
-                <p className="mt-2 whitespace-pre-line text-sm text-gray-600">
+                <p className="mt-2 whitespace-pre-line text-sm text-muted-foreground">
                   {data.reasoning}
                 </p>
               </details>
             )}
 
             {data.habits.length > 0 && (
-              <div className="rounded-lg border border-gray-200 bg-white p-4">
-                <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+              <div className="rounded-xl border border-border bg-card p-4">
+                <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   <Sparkles size={12} /> Extracted spending habits
                 </p>
                 <ul className="space-y-1.5">
@@ -211,14 +299,14 @@ const MessageBubble = ({ message }: { message: ChatMessage }) => {
                       key={index}
                       className="flex items-center justify-between gap-3 text-sm"
                     >
-                      <span className="capitalize text-gray-600">
+                      <span className="capitalize text-muted-foreground">
                         {capitalize(habit.category)}
-                        <span className="text-gray-400">
+                        <span className="text-muted-foreground/70">
                           {" "}
                           · {FREQUENCY_LABELS[habit.frequency] ?? habit.frequency}
                         </span>
                       </span>
-                      <span className="font-medium text-gray-900">
+                      <span className="font-medium text-foreground">
                         {formatMoney(habit.monthlyEquivalent, data.currency)}/mo
                       </span>
                     </li>
@@ -228,25 +316,22 @@ const MessageBubble = ({ message }: { message: ChatMessage }) => {
             )}
 
             {data.proposedMonthlyBudget !== null && (
-              <div className="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-                <span className="text-sm text-emerald-800">
+              <div className="flex items-center justify-between rounded-xl border border-primary/30 bg-primary/5 p-4">
+                <span className="text-sm text-foreground">
                   Proposed monthly budget
                 </span>
-                <span className="flex items-center gap-2 font-semibold text-emerald-700">
-                  {formatMoney(
-                    data.proposedMonthlyBudget,
-                    data.currency
-                  )}
+                <span className="flex items-center gap-2 font-semibold text-primary">
+                  {formatMoney(data.proposedMonthlyBudget, data.currency)}
                   {data.budgetSaved && (
-                    <CheckCircle2 size={16} className="text-emerald-500" />
+                    <CheckCircle2 size={16} className="text-primary" />
                   )}
                 </span>
               </div>
             )}
 
             {hasInsights(data.insights) && (
-              <div className="rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
-                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-sky-600">
+              <div className="rounded-xl border border-tertiary/30 bg-tertiary/5 p-4 text-sm text-foreground">
+                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-tertiary-foreground">
                   <Lightbulb size={12} /> Insights
                 </p>
                 <ul className="mt-2 space-y-2">
@@ -275,9 +360,11 @@ const MessageBubble = ({ message }: { message: ChatMessage }) => {
             )}
 
             {data.savingsTip && (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                <p className="font-semibold">Savings tip</p>
-                <p className="mt-1">{data.savingsTip}</p>
+              <div className="rounded-xl border border-border bg-muted/50 p-4 text-sm">
+                <p className="font-semibold text-tertiary-foreground">
+                  Savings tip
+                </p>
+                <p className="mt-1 text-muted-foreground">{data.savingsTip}</p>
               </div>
             )}
           </div>

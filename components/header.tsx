@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "./ui/button";
-import { PenBox, LayoutDashboard, User, Bot } from "lucide-react";
+import { PenBox, User, Menu } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { getCurrentUser } from "@/lib/session";
@@ -9,59 +9,54 @@ import UserMenu from "./auth/user-menu";
 const Header = async () => {
   const user = await getCurrentUser();
 
+  const links = user
+    ? [
+        { href: "/assistant", label: "Money Chat" },
+        { href: "/dashboard", label: "Dashboard" },
+        { href: "/transaction/create", label: "Add Transaction" },
+      ]
+    : [
+        { href: "/#features", label: "Features" },
+        { href: "/#how-it-works", label: "How it works" },
+        { href: "/#testimonials", label: "Stories" },
+      ];
+
   return (
-    <header className="fixed top-0 w-full bg-white/80 backdrop-blur-md z-50 border-b">
-      <nav className="container mx-auto px-4 py-4 flex items-center justify-between">
-        <Link href="/">
+    <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/80 backdrop-blur-xl">
+      <nav className="container mx-auto flex h-16 items-center justify-between px-4">
+        <Link href="/" className="flex shrink-0 items-center gap-2">
           <Image
             src={"/logo.jpg"}
             alt="Wealth Logo"
             width={200}
             height={60}
-            className="h-12 w-auto object-contain"
+            priority
+            className="h-10 w-auto object-contain"
           />
         </Link>
 
-        {/* Navigation Links - Different for signed in/out users */}
-        <div className="hidden md:flex items-center space-x-8">
-          {!user && (
-            <>
-              <a href="#features" className="text-gray-600 hover:text-blue-600">
-                Features
-              </a>
-              <a
-                href="#testimonials"
-                className="text-gray-600 hover:text-blue-600"
-              >
-                Testimonials
-              </a>
-            </>
-          )}
+        {/* Primary navigation */}
+        <div className="hidden items-center gap-1 md:flex">
+          {links.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              prefetch
+              className="rounded-full px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            >
+              {link.label}
+            </Link>
+          ))}
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center space-x-4">
+        {/* Actions */}
+        <div className="flex items-center gap-2">
           {user ? (
             <>
-              <Link href="/assistant">
-                <Button variant="ghost" className="flex items-center gap-2">
-                  <Bot size={18} />
-                  <span className="hidden md:inline">Money Chat</span>
-                </Button>
-              </Link>
-              <Link href="/transaction/create">
-                <Button className="flex items-center gap-2">
-                  <PenBox size={18} />
-                  <span className="hidden md:inline">Add Transaction</span>
-                </Button>
-              </Link>
-              <Link
-                href="/dashboard"
-                className="text-gray-600 hover:text-blue-600 flex items-center gap-2"
-              >
-                <Button variant="outline">
-                  <LayoutDashboard size={18} />
-                  <span className="hidden md:inline">Dashboard</span>
+              <Link href="/transaction/create" className="hidden sm:block">
+                <Button className="gap-2">
+                  <PenBox size={16} />
+                  <span className="hidden lg:inline">Add Transaction</span>
                 </Button>
               </Link>
               <UserMenu
@@ -72,12 +67,38 @@ const Header = async () => {
             </>
           ) : (
             <Link href="/sign-in">
-              <Button variant="outline" className="flex items-center gap-2">
-                <User size={18} />
-                Login
+              <Button className="gap-2">
+                <User size={16} />
+                Sign in
               </Button>
             </Link>
           )}
+
+          {/* Mobile menu (no-JS, CSS-only) */}
+          <details className="group relative md:hidden">
+            <summary className="flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground [&::-webkit-details-marker]:hidden">
+              <Menu size={18} />
+            </summary>
+            <div className="absolute right-0 mt-2 w-56 overflow-hidden rounded-xl border border-border bg-popover p-1.5 shadow-lg">
+              {links.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="block rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                >
+                  {link.label}
+                </Link>
+              ))}
+              {!user && (
+                <Link
+                  href="/sign-in"
+                  className="mt-1 flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
+                >
+                  <User size={16} /> Sign in
+                </Link>
+              )}
+            </div>
+          </details>
         </div>
       </nav>
     </header>

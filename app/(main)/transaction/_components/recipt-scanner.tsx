@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useRef, useEffect } from "react";
 import { Camera, Loader2 } from "lucide-react";
@@ -35,7 +35,7 @@ export function ReceiptScanner({ onScanComplete }: ReceiptScannerProps) {
       onScanComplete(scannedData);
       toast.success("Receipt scanned successfully");
     }
-  }, [scanReceiptLoading, scannedData]);
+  }, [onScanComplete, scanReceiptLoading, scannedData]);
 
   return (
     <div className="flex items-center gap-4">
@@ -53,7 +53,7 @@ export function ReceiptScanner({ onScanComplete }: ReceiptScannerProps) {
       <Button
         type="button"
         variant="outline"
-        className="w-full h-10 bg-gradient-to-br from-orange-500 via-pink-500 to-purple-500 animate-gradient hover:opacity-90 transition-opacity text-white hover:text-white"
+        className="h-10 w-full bg-gradient-to-br from-primary to-secondary text-primary-foreground transition-opacity hover:opacity-90 hover:text-primary-foreground"
         onClick={() => fileInputRef.current?.click()}
         disabled={scanReceiptLoading as boolean | undefined}
       >
