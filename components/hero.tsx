@@ -1,7 +1,7 @@
 ﻿import React from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Play, Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 import Link from "next/link";
 
 const HeroSection = () => {
@@ -24,21 +24,11 @@ const HeroSection = () => {
           math, and shows you exactly where to save.
         </p>
 
-        <div className="animate-rise mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+        <div className="animate-rise mt-9 flex items-center justify-center">
           <Link href="/dashboard">
             <Button size="lg" className="h-12 gap-2 px-7 text-base">
               Get started free
               <ArrowRight size={18} />
-            </Button>
-          </Link>
-          <Link href="/assistant">
-            <Button
-              size="lg"
-              variant="outline"
-              className="h-12 gap-2 px-7 text-base"
-            >
-              <Play size={16} />
-              Try Money Chat
             </Button>
           </Link>
         </div>

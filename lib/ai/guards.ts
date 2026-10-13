@@ -49,7 +49,7 @@ export function screenAssistantMessage(raw: unknown): MessageScreen {
         ok: false,
         code: "SUSPECTED_INJECTION",
         message:
-          "That message looks like it's trying to change my instructions. Please rephrase it as a normal finance question.",
+          "I can only help with your budget and spending, and I can't change how I work. Try something like \"I spend 300 cedis a week on groceries.\"",
       };
     }
   }

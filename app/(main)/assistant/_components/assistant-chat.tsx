@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   CloudOff,
   RefreshCw,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -60,6 +61,8 @@ const hasInsights = (
   );
 
 const PENDING_KEY = "wealth.pendingChat";
+const HISTORY_KEY = "wealth.queryHistory";
+const MAX_HISTORY = 8;
 
 const readPending = (): string[] => {
   if (typeof window === "undefined") return [];
@@ -74,6 +77,28 @@ const readPending = (): string[] => {
   }
 };
 
+const readHistory = (): string[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(HISTORY_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed)
+      ? parsed.filter((item): item is string => typeof item === "string")
+      : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeHistory = (items: string[]) => {
+  if (typeof window === "undefined") return;
+  if (items.length) {
+    window.localStorage.setItem(HISTORY_KEY, JSON.stringify(items));
+  } else {
+    window.localStorage.removeItem(HISTORY_KEY);
+  }
+};
+
 const isOffline = () =>
   typeof navigator !== "undefined" && !navigator.onLine;
 
@@ -84,10 +109,30 @@ const AssistantChat = () => {
   const [status, setStatus] = useState("");
   const [streamingText, setStreamingText] = useState("");
   const [pending, setPending] = useState<string[]>([]);
+  const [history, setHistory] = useState<string[]>([]);
 
   const pendingRef = useRef<string[]>([]);
   const flushingRef = useRef(false);
   const { online } = useNetworkStatus();
+
+  const addToHistory = (content: string) => {
+    setHistory((prev) => {
+      const next = [content, ...prev.filter((item) => item !== content)].slice(
+        0,
+        MAX_HISTORY
+      );
+      writeHistory(next);
+      return next;
+    });
+  };
+
+  const removeFromHistory = (content: string) => {
+    setHistory((prev) => {
+      const next = prev.filter((item) => item !== content);
+      writeHistory(next);
+      return next;
+    });
+  };
 
   const persistPending = (items: string[]) => {
     pendingRef.current = items;
@@ -120,6 +165,7 @@ const AssistantChat = () => {
     if (!options?.retry) {
       setMessages((prev) => [...prev, { role: "user", content: trimmed }]);
       setInput("");
+      addToHistory(trimmed);
     }
     setLoading(true);
     setStatus("Connecting…");
@@ -139,8 +185,20 @@ const AssistantChat = () => {
       });
 
       if (!response.ok || !response.body) {
-        const text = await response.text().catch(() => "");
-        throw new Error(text || "The assistant is unavailable right now");
+        const raw = await response.text().catch(() => "");
+        let message = "The assistant is unavailable right now. Please try again.";
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw) as { error?: unknown };
+            message =
+              typeof parsed?.error === "string" && parsed.error.trim()
+                ? parsed.error
+                : raw;
+          } catch {
+            message = raw;
+          }
+        }
+        throw new Error(message);
       }
 
       const reader = response.body.getReader();
@@ -164,7 +222,9 @@ const AssistantChat = () => {
           ]);
         } else if (event.type === "error") {
           done = true;
-          toast.error(event.error || "Something went wrong");
+          toast.error(event.error || "Something went wrong", {
+            id: "chat-error",
+          });
         }
       };
 
@@ -213,7 +273,7 @@ const AssistantChat = () => {
           { id: "chat-offline" }
         );
       } else {
-        toast.error(message);
+        toast.error(message, { id: "chat-error" });
       }
       return false;
     } finally {
@@ -252,6 +312,12 @@ const AssistantChat = () => {
     ]);
   }, []);
 
+  // Restore the user's recent questions (re-runnable history).
+  useEffect(() => {
+    const stored = readHistory();
+    if (stored.length) setHistory(stored);
+  }, []);
+
   // Automatically resend queued messages when the connection returns.
   useEffect(() => {
     if (online && pendingRef.current.length > 0) {
@@ -269,6 +335,41 @@ const AssistantChat = () => {
           numbers, and point out savings.
         </p>
       </div>
+
+      {/* Recent questions — click to re-run, X to remove */}
+      {history.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Recent questions
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {history.map((query) => (
+              <div
+                key={query}
+                className="flex items-center gap-1 rounded-full border border-border bg-card py-1 pl-3 pr-1 text-xs text-muted-foreground transition-colors hover:border-primary/50"
+              >
+                <button
+                  type="button"
+                  onClick={() => void sendMessage(query)}
+                  disabled={loading}
+                  title={query}
+                  className="max-w-[240px] truncate transition-colors hover:text-primary disabled:opacity-50"
+                >
+                  {query}
+                </button>
+                <button
+                  type="button"
+                  aria-label="Remove from recent questions"
+                  onClick={() => removeFromHistory(query)}
+                  className="rounded-full p-1 transition-colors hover:bg-destructive/10 hover:text-destructive"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Messages */}
       <div className="space-y-4">

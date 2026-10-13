@@ -27,7 +27,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <main className="min-h-screen">{children}</main>
         <FloatingChatButton />
         <NetworkStatus />
-        <Toaster richColors />
+        <Toaster richColors position="top-right" />
 
         <footer className="border-t border-border/70 bg-secondary text-secondary-foreground">
           <div className="container mx-auto flex flex-col items-center justify-between gap-3 px-4 py-10 text-center text-sm sm:flex-row sm:text-left">
