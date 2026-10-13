@@ -97,13 +97,30 @@ Inngest, Resend, and Arcjet.
   ≥ 80% of their budget (at most once per month).
 - React Email templates with a graceful fallback if AI insight generation fails.
 
-### Resilience & Guardrails
+### AI Safety & Guardrails
+- **Tool-layer authorization (the real boundary)**: the coach's `create_budget`
+  and `create_transaction` tools write exclusively to the authenticated user
+  (`requireUserId()`) and validate every argument with Zod. The model is treated
+  as an untrusted caller, so a hijacked prompt cannot cross user boundaries. This
+  costs 0 ms and holds even when an injection succeeds.
+- **Assistant rate limiting**: the SSE endpoint is protected by Arcjet's token
+  bucket (30 requests/hour per user), capping cost abuse and brute-force
+  injection attempts. No-ops gracefully when `ARCJET_KEY` is absent.
+- **Cheap input screening**: `lib/ai/guards.ts` enforces a 2000-character cap and
+  rejects obvious instruction-override / system-prompt-extraction / jailbreak
+  patterns in-process before any Arcjet or OpenAI call. Heuristic only — a fast
+  first layer, not a security boundary.
+- **Transaction rate limiting**: Arcjet token bucket (10 requests/hour per user)
+  on transaction creation.
+- **Single guarded entry point**: all coach traffic flows through
+  `/api/assistant`; the previous server-action shortcut that called `runAssistant`
+  directly has been removed so the guards cannot be bypassed.
+
+### Resilience & UX
 - **Offline-aware chat**: messages sent while offline are queued in `localStorage`
   and automatically flushed when connectivity returns, with a "Retry now" action.
 - **Network status UI**: toast + persistent banner for offline, warning for slow
   connections (Network Information API).
-- **Rate limiting** with Arcjet (token bucket, 10 requests/hour per user) on
-  transaction creation; no-ops gracefully when `ARCJET_KEY` is absent.
 - Floating chat button (hidden on auth/assistant routes) for quick access everywhere.
 - 404 page and toast notifications throughout.
 
@@ -118,7 +135,7 @@ Inngest, Resend, and Arcjet.
 | AI | OpenAI (Responses API, structured outputs, vision) |
 | Background jobs | Inngest (cron + events) |
 | Email | Resend + React Email |
-| Rate limiting | Arcjet |
+| Rate limiting / abuse protection | Arcjet (per-user token bucket) |
 | UI | Tailwind CSS, Radix UI, shadcn-style components, Recharts, sonner |
 
 ## Project Structure
@@ -135,13 +152,13 @@ app/
     auth/[...all]/   Better Auth handler
     inngest/         Inngest serve handler
     seed/            Demo data seeder
-actions/             Server actions (budget, transaction, dashboard, assistant, email, seed)
+actions/             Server actions (budget, transaction, dashboard, email, seed)
 components/          UI, auth, header, hero, network status, floating chat
 data/                Categories and landing-page content
 emails/              React Email templates
 hooks/               useFetch, useNetworkStatus
 lib/
-  ai/                Assistant core, persona, calculator, currency, schemas, reasoning
+  ai/                Assistant core, persona, calculator, currency, schemas, reasoning, input guards
   inngest/           Client and background functions
   auth.ts            Better Auth config
   prisma.ts          Prisma client singleton

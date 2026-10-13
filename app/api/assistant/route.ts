@@ -1,5 +1,8 @@
 import { NextRequest } from "next/server";
 import { runAssistant } from "@/lib/ai/assistant-core";
+import { assistantRateLimit } from "@/lib/arcjet";
+import { getCurrentUser } from "@/lib/session";
+import { screenAssistantMessage } from "@/lib/ai/guards";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,16 +14,46 @@ type StreamEvent =
   | { type: "error"; error: string };
 
 export async function POST(request: NextRequest) {
-  let message: unknown;
+  let body: { message?: unknown };
   try {
-    const body = (await request.json()) as { message?: unknown };
-    message = body?.message;
+    body = (await request.json()) as { message?: unknown };
   } catch {
     return Response.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  if (typeof message !== "string" || !message.trim()) {
-    return Response.json({ error: "Message is required" }, { status: 400 });
+  // Cheap, in-process guardrail: length cap plus obvious instruction-override
+  // patterns. Fails fast before we spend an Arcjet or OpenAI call.
+  const rawMessage = body?.message;
+  const screen = screenAssistantMessage(rawMessage);
+  if (!screen.ok) {
+    return Response.json(
+      { error: screen.message, code: screen.code },
+      { status: 400 }
+    );
+  }
+  const message = rawMessage as string;
+
+  const user = await getCurrentUser();
+  if (!user) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const decision = await assistantRateLimit(request, {
+    userId: user.id,
+    requested: 1,
+  });
+
+  if (decision?.isDenied()) {
+    if (decision.reason.isRateLimit()) {
+      return Response.json(
+        {
+          error:
+            "You're sending messages too quickly. Please wait a moment and try again.",
+        },
+        { status: 429 }
+      );
+    }
+    return Response.json({ error: "Request blocked" }, { status: 403 });
   }
 
   const encoder = new TextEncoder();
