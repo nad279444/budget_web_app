@@ -1,9 +1,19 @@
 "use client";
 
-import { useState } from "react";
-import { Bot, Lightbulb, Send, Sparkles, User, CheckCircle2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  Bot,
+  Lightbulb,
+  Send,
+  Sparkles,
+  User,
+  CheckCircle2,
+  CloudOff,
+  RefreshCw,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { useNetworkStatus } from "@/hooks/use-network-status";
 import { formatMoney, type Currency } from "@/lib/ai/currency";
 import type { AssistantReply } from "@/lib/ai/schemas";
 
@@ -49,19 +59,68 @@ const hasInsights = (
       (insights.topCategory || insights.savingsLeft || insights.whereToSave)
   );
 
+const PENDING_KEY = "wealth.pendingChat";
+
+const readPending = (): string[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(PENDING_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed)
+      ? parsed.filter((item): item is string => typeof item === "string")
+      : [];
+  } catch {
+    return [];
+  }
+};
+
+const isOffline = () =>
+  typeof navigator !== "undefined" && !navigator.onLine;
+
 const AssistantChat = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
   const [streamingText, setStreamingText] = useState("");
+  const [pending, setPending] = useState<string[]>([]);
 
-  const sendMessage = async (content: string) => {
+  const pendingRef = useRef<string[]>([]);
+  const flushingRef = useRef(false);
+  const { online } = useNetworkStatus();
+
+  const persistPending = (items: string[]) => {
+    pendingRef.current = items;
+    setPending(items);
+    if (typeof window === "undefined") return;
+    if (items.length) {
+      window.localStorage.setItem(PENDING_KEY, JSON.stringify(items));
+    } else {
+      window.localStorage.removeItem(PENDING_KEY);
+    }
+  };
+
+  const enqueue = (content: string) => {
+    if (pendingRef.current.includes(content)) return;
+    persistPending([...pendingRef.current, content]);
+  };
+
+  const dequeue = (content: string) => {
+    persistPending(pendingRef.current.filter((item) => item !== content));
+  };
+
+  const sendMessage = async (
+    content: string,
+    options?: { retry?: boolean }
+  ): Promise<boolean> => {
     const trimmed = content.trim();
-    if (!trimmed || loading) return;
+    if (!trimmed) return false;
+    if (!options?.retry && loading) return false;
 
-    setMessages((prev) => [...prev, { role: "user", content: trimmed }]);
-    setInput("");
+    if (!options?.retry) {
+      setMessages((prev) => [...prev, { role: "user", content: trimmed }]);
+      setInput("");
+    }
     setLoading(true);
     setStatus("Connecting…");
     setStreamingText("");
@@ -69,6 +128,10 @@ const AssistantChat = () => {
     let done = false;
 
     try {
+      if (isOffline()) {
+        throw new Error("offline");
+      }
+
       const response = await fetch("/api/assistant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -130,18 +193,72 @@ const AssistantChat = () => {
       }
 
       if (!done) {
-        toast.error("The assistant stopped unexpectedly. Try again.");
+        throw new Error("The assistant stopped unexpectedly. Try again.");
       }
+
+      return true;
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Something went wrong"
-      );
+      const message =
+        error instanceof Error ? error.message : "Something went wrong";
+      const networkIssue =
+        isOffline() ||
+        error instanceof TypeError ||
+        message === "offline" ||
+        /failed to fetch|network|load failed/i.test(message);
+
+      if (networkIssue) {
+        enqueue(trimmed);
+        toast.info(
+          "You're offline. Your message is saved and will send automatically once the connection returns.",
+          { id: "chat-offline" }
+        );
+      } else {
+        toast.error(message);
+      }
+      return false;
     } finally {
       setLoading(false);
       setStatus("");
       setStreamingText("");
     }
   };
+
+  const flushPending = async () => {
+    if (flushingRef.current || isOffline()) return;
+    flushingRef.current = true;
+    try {
+      for (const content of [...pendingRef.current]) {
+        const sent = await sendMessage(content, { retry: true });
+        if (sent) {
+          dequeue(content);
+        } else if (isOffline()) {
+          break;
+        }
+      }
+    } finally {
+      flushingRef.current = false;
+    }
+  };
+
+  // Restore any queued messages saved from a previous session.
+  useEffect(() => {
+    const stored = readPending();
+    if (!stored.length) return;
+    pendingRef.current = stored;
+    setPending(stored);
+    setMessages((prev) => [
+      ...prev,
+      ...stored.map((content) => ({ role: "user" as const, content })),
+    ]);
+  }, []);
+
+  // Automatically resend queued messages when the connection returns.
+  useEffect(() => {
+    if (online && pendingRef.current.length > 0) {
+      void flushPending();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [online]);
 
   return (
     <div className="space-y-6">
@@ -210,6 +327,29 @@ const AssistantChat = () => {
           </div>
         )}
       </div>
+
+      {/* Queued (offline) messages */}
+      {pending.length > 0 && (
+        <div className="flex flex-col gap-3 rounded-xl border border-tertiary/40 bg-tertiary/10 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+          <span className="flex items-center gap-2 text-muted-foreground">
+            <CloudOff size={16} className="shrink-0 text-tertiary-foreground" />
+            {pending.length} {pending.length === 1 ? "message" : "messages"}{" "}
+            waiting to send. It will be delivered automatically once you&apos;re
+            back online.
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-2 self-start sm:self-auto"
+            onClick={() => void flushPending()}
+            disabled={!online || loading}
+          >
+            <RefreshCw size={14} />
+            Retry now
+          </Button>
+        </div>
+      )}
 
       {/* Input */}
       <form

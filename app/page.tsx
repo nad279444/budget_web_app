@@ -11,8 +11,18 @@ import {
 import HeroSection from "@/components/hero";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/session";
+import { hasTransactions } from "@/actions/dashboard";
 
-const LandingPage = () => {
+const LandingPage = async () => {
+  const user = await getCurrentUser();
+
+  if (user) {
+    const hasPastTransactions = await hasTransactions();
+    redirect(hasPastTransactions ? "/dashboard" : "/transaction/create");
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <HeroSection />

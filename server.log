@@ -23,3 +23,96 @@
  ○ Compiling /api/inngest ...
  ✓ Compiled /api/inngest in 2.6s
  GET /api/inngest 200 in 3094ms
+ ○ Compiling /assistant ...
+ ✓ Compiled /assistant in 509ms
+ GET /assistant 200 in 602ms
+ ○ Compiling /dashboard ...
+ ✓ Compiled /dashboard in 3.9s
+ GET /dashboard 200 in 8450ms
+ ○ Compiling /transaction/create ...
+ ✓ Compiled /transaction/create in 1904ms
+ GET /transaction/create 200 in 2045ms
+ GET /transaction/create 200 in 110ms
+ GET /transaction/create 200 in 111ms
+ GET /assistant 200 in 107ms
+ GET /dashboard 200 in 3005ms
+ GET /assistant 200 in 106ms
+ ○ Compiling /api/assistant ...
+ ✓ Compiled /api/assistant in 1473ms
+ POST /api/assistant 200 in 19477ms
+ GET / 200 in 248ms
+ GET /favicon.ico?favicon.45db1c09.ico 200 in 172ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 134ms
+ ✓ Compiled /api/auth/[...all] in 479ms
+ POST /api/auth/sign-in/social 200 in 4777ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 142ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 229ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 285ms
+ POST /api/auth/sign-in/social 200 in 384ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 142ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 299ms
+ GET /sign-in 200 in 112ms
+ POST /api/auth/sign-in/social 200 in 363ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 162ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 278ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 236ms
+ GET / 200 in 161ms
+ GET /sign-in 200 in 133ms
+ POST /api/auth/sign-in/social 200 in 618ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 132ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 330ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 368ms
+ POST /api/auth/sign-in/social 200 in 370ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 135ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 436ms
+ POST /api/auth/sign-in/social 200 in 378ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 150ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 521ms
+ POST /api/auth/sign-in/social 200 in 575ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 139ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 367ms
+ POST /api/auth/sign-in/social 200 in 354ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 133ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 370ms
+ POST /api/auth/sign-in/social 200 in 359ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 133ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 265ms
+ POST /api/auth/sign-in/social 200 in 384ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 134ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 309ms
+ POST /api/auth/sign-in/social 200 in 586ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 140ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 292ms
+ POST /api/auth/sign-in/social 200 in 359ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 131ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 367ms
+ POST /api/auth/sign-in/social 200 in 358ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 133ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 339ms
+ POST /api/auth/sign-in/social 200 in 353ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 179ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 326ms
+ POST /api/auth/sign-in/social 200 in 349ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 127ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 291ms
+ POST /api/auth/sign-in/social 200 in 389ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 251ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 203ms
+ POST /api/auth/sign-in/social 200 in 348ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 137ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 331ms
+ POST /api/auth/sign-in/social 200 in 583ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 165ms
+ GET /sign-in?redirect=%2Fdashboard 200 in 383ms
+ GET /sign-in 200 in 176ms
+ GET / 200 in 135ms
+ GET / 200 in 135ms
+ GET / 200 in 132ms
+ GET / 200 in 380ms
+ GET / 200 in 388ms
+ ○ Compiling /_not-found/page ...
+ ✓ Compiled /_not-found/page in 815ms
+ GET /fonts/Open_Sans_wolff/OpenSans-SemiBold.woff2 404 in 5688ms
+ GET /fonts/Open_Sans_wolff/OpenSans-SemiBold.woff 404 in 621ms
+ GET /centrix_logo.png 404 in 3943ms
+ GET /auth/login 404 in 3965ms

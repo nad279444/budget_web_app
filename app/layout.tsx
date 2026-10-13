@@ -2,6 +2,8 @@
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/header";
+import FloatingChatButton from "@/components/floating-chat-button";
+import NetworkStatus from "@/components/network-status";
 import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -21,6 +23,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className={`${inter.variable} font-sans antialiased`}>
         <Header />
         <main className="min-h-screen">{children}</main>
+        <FloatingChatButton />
+        <NetworkStatus />
         <Toaster richColors />
 
         <footer className="border-t border-border/70 bg-secondary text-secondary-foreground">

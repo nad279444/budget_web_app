@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "./ui/button";
-import { PenBox, User, Menu } from "lucide-react";
+import { User, Menu } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { getCurrentUser } from "@/lib/session";
@@ -13,7 +13,6 @@ const Header = async () => {
     ? [
         { href: "/assistant", label: "Money Chat" },
         { href: "/dashboard", label: "Dashboard" },
-        { href: "/transaction/create", label: "Add Transaction" },
       ]
     : [
         { href: "/#features", label: "Features" },
@@ -24,17 +23,6 @@ const Header = async () => {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/80 backdrop-blur-xl">
       <nav className="container mx-auto flex h-16 items-center justify-between px-4">
-        <Link href="/" className="flex shrink-0 items-center gap-2">
-          <Image
-            src={"/logo.jpg"}
-            alt="Wealth Logo"
-            width={200}
-            height={60}
-            priority
-            className="h-10 w-auto object-contain"
-          />
-        </Link>
-
         {/* Primary navigation */}
         <div className="hidden items-center gap-1 md:flex">
           {links.map((link) => (
@@ -53,12 +41,6 @@ const Header = async () => {
         <div className="flex items-center gap-2">
           {user ? (
             <>
-              <Link href="/transaction/create" className="hidden sm:block">
-                <Button className="gap-2">
-                  <PenBox size={16} />
-                  <span className="hidden lg:inline">Add Transaction</span>
-                </Button>
-              </Link>
               <UserMenu
                 name={user.name ?? ""}
                 email={user.email}

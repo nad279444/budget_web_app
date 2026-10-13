@@ -3,12 +3,17 @@ import { getCurrentBudget } from "@/actions/budget";
 import { BudgetProgress } from "./_components/budget-progress";
 import { DashboardOverview } from "./_components/transaction-overview";
 import { TransactionTable } from "./_components/transaction-table";
+import { redirect } from "next/navigation";
 
 export default async function DashboardPage() {
   const [transactions, budgetData] = await Promise.all([
     getDashboardData(),
     getCurrentBudget(),
   ]);
+
+  if (!transactions || transactions.length === 0) {
+    redirect("/transaction/create");
+  }
 
   return (
     <div className="space-y-8">

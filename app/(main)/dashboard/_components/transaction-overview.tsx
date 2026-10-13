@@ -69,7 +69,7 @@ export function DashboardOverview({ transactions }: DashboardOverviewProps) {
   return (
     <div className="grid gap-4 md:grid-cols-2">
       {/* Recent Transactions Card */}
-      <Card>
+      <Card className="bg-secondary text-secondary-foreground">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <CardTitle className="text-base font-normal">
             Recent Transactions
@@ -120,7 +120,7 @@ export function DashboardOverview({ transactions }: DashboardOverviewProps) {
       </Card>
 
       {/* Expense Breakdown Card */}
-      <Card>
+      <Card className="bg-secondary text-secondary-foreground">
         <CardHeader>
           <CardTitle className="text-base font-normal">
             Monthly Expense Breakdown

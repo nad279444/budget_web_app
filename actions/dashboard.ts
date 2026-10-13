@@ -23,3 +23,13 @@ export async function getDashboardData(): Promise<SerializedTransaction[]> {
 
   return serializeTransactions(transactions);
 }
+
+export async function hasTransactions(): Promise<boolean> {
+  const userId = await requireUserId();
+
+  const count = await db.transaction.count({
+    where: { userId },
+  });
+
+  return count > 0;
+}

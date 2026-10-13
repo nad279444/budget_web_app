@@ -73,7 +73,7 @@ export function BudgetProgress({
   }, [error]);
 
   return (
-    <Card>
+    <Card className="bg-secondary text-secondary-foreground">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex-1">
           <CardTitle className="text-sm font-medium">
