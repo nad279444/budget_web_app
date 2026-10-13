@@ -8,6 +8,8 @@ import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Wealth - AI-powered budgeting",
   description:
