@@ -1,7 +1,6 @@
 ﻿import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-
-const SESSION_COOKIE = "wealth.session_token";
+import { getSessionCookie } from "better-auth/cookies";
 
 const isProtectedRoute = (pathname: string) =>
   /^\/(dashboard|transaction|assistant)(\/|$)/.test(pathname);
@@ -9,7 +8,7 @@ const isProtectedRoute = (pathname: string) =>
 export function middleware(req: NextRequest) {
   if (
     isProtectedRoute(req.nextUrl.pathname) &&
-    !req.cookies.has(SESSION_COOKIE)
+    !getSessionCookie(req, { cookiePrefix: "wealth" })
   ) {
     const signInUrl = new URL("/sign-in", req.url);
     signInUrl.searchParams.set(
