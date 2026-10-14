@@ -156,14 +156,16 @@ const AssistantChat = () => {
 
   const sendMessage = async (
     content: string,
-    options?: { retry?: boolean }
+    options?: { retry?: boolean; showUserBubble?: boolean }
   ): Promise<boolean> => {
     const trimmed = content.trim();
     if (!trimmed) return false;
     if (!options?.retry && loading) return false;
 
     if (!options?.retry) {
-      setMessages((prev) => [...prev, { role: "user", content: trimmed }]);
+      if (options?.showUserBubble !== false) {
+        setMessages((prev) => [...prev, { role: "user", content: trimmed }]);
+      }
       setInput("");
       addToHistory(trimmed);
     }
@@ -346,14 +348,14 @@ const AssistantChat = () => {
             {history.map((query) => (
               <div
                 key={query}
-                className="flex items-center gap-1 rounded-full border border-border bg-card py-1 pl-3 pr-1 text-xs text-muted-foreground transition-colors hover:border-primary/50"
+                className="flex items-center gap-1 rounded-full bg-primary py-1 pl-3 pr-1 text-xs text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 <button
                   type="button"
                   onClick={() => void sendMessage(query)}
                   disabled={loading}
                   title={query}
-                  className="max-w-[240px] truncate transition-colors hover:text-primary disabled:opacity-50"
+                  className="max-w-[240px] truncate transition-colors hover:underline disabled:opacity-50"
                 >
                   {query}
                 </button>
@@ -361,7 +363,7 @@ const AssistantChat = () => {
                   type="button"
                   aria-label="Remove from recent questions"
                   onClick={() => removeFromHistory(query)}
-                  className="rounded-full p-1 transition-colors hover:bg-destructive/10 hover:text-destructive"
+                  className="rounded-full p-1 transition-opacity hover:opacity-70"
                 >
                   <X size={12} />
                 </button>
@@ -382,7 +384,9 @@ const AssistantChat = () => {
               <button
                 key={suggestion}
                 type="button"
-                onClick={() => sendMessage(suggestion)}
+                onClick={() =>
+                  sendMessage(suggestion, { showUserBubble: false })
+                }
                 className="block w-full rounded-xl border border-border bg-card px-4 py-3 text-left text-sm text-muted-foreground transition-colors hover:border-primary hover:text-primary"
               >
                 {suggestion}
