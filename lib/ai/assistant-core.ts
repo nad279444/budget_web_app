@@ -163,10 +163,11 @@ export async function runAssistant(
 
     if (round >= MAX_ROUNDS) break;
 
-    input = [
-      ...(response.output as OpenAI.Responses.ResponseInputItem[]),
-      ...toolOutputs,
-    ];
+    // Send the FULL accumulated conversation (system + user + every prior tool
+    // call and result), not just the last round. The Responses API is stateless
+    // without `previous_response_id`, so dropping earlier turns makes the model
+    // forget results it already computed and re-run the same calculations.
+    input = [...history];
     response = await openai.responses.create({
       model: ASSISTANT_MODEL,
       input,

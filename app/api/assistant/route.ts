@@ -6,6 +6,10 @@ import { screenAssistantMessage } from "@/lib/ai/guards";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// The assistant makes several sequential model/tool round-trips before it can
+// stream an answer. Without this, Vercel's default function timeout kills the
+// stream mid-response, which the client reports as "stopped unexpectedly".
+export const maxDuration = 60;
 
 type StreamEvent =
   | { type: "status"; message: string }
