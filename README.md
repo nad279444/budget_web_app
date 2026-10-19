@@ -195,7 +195,8 @@ real secrets.
 | `DATABASE_URL` | Yes | Pooled PostgreSQL connection string (Prisma runtime) |
 | `DIRECT_URL` | Yes | Direct PostgreSQL connection string (Prisma migrations) |
 | `BETTER_AUTH_SECRET` | Yes | Signing secret for sessions/cookies |
-| `BETTER_AUTH_URL` | Yes | Public base URL (`http://localhost:3000` locally, your domain in production) |
+| `BETTER_AUTH_URL` | No | Legacy; auth host allowlisting is configured in `lib/auth.ts` (`baseURL.allowedHosts`) |
+| `BETTER_AUTH_TRUSTED_ORIGINS` | No | Comma-separated extra origins trusted for auth requests (e.g. Vercel preview URLs) |
 | `GOOGLE_CLIENT_ID` | Yes | Google OAuth client ID |
 | `GOOGLE_CLIENT_SECRET` | Yes | Google OAuth client secret |
 | `OPENAI_KEY` (or `OPENAI_API_KEY`) | Yes | OpenAI API key |
@@ -246,13 +247,14 @@ at `/api/inngest`.
 Designed for [Vercel](https://vercel.com) + a hosted PostgreSQL database.
 
 1. Set all required environment variables in your hosting provider.
-2. Set `BETTER_AUTH_URL` to your public domain (e.g. `https://your-app.vercel.app`).
-3. In Google Cloud Console, add the authorized redirect URI:
-   `https://your-domain/api/auth/callback/google` and add your domain under
-   authorized JavaScript origins.
-4. Run `npx prisma migrate deploy` against the production database.
-5. Configure Inngest (event + signing keys) and point it at `/api/inngest`.
-6. Add your Resend sending domain / verified sender as needed.
+2. In Google Cloud Console, add the authorized redirect URI for every deploy
+   domain (production and any Vercel preview URL you sign in from):
+   `https://budget-web-app-nine.vercel.app/api/auth/callback/google` plus
+   `https://<preview-url>/api/auth/callback/google`, and add the same domains
+   under authorized JavaScript origins.
+3. Run `npx prisma migrate deploy` against the production database.
+4. Configure Inngest (event + signing keys) and point it at `/api/inngest`.
+5. Add your Resend sending domain / verified sender as needed.
 
 > The auth cookies use a `wealth` prefix and are automatically namespaced with
 > `__Secure-` on HTTPS. Middleware resolves the session via Better Auth's
