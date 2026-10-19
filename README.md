@@ -199,8 +199,8 @@ real secrets.
 | `GOOGLE_CLIENT_ID` | Yes | Google OAuth client ID |
 | `GOOGLE_CLIENT_SECRET` | Yes | Google OAuth client secret |
 | `OPENAI_KEY` (or `OPENAI_API_KEY`) | Yes | OpenAI API key |
-| `OPENAI_MODEL` | No | Model for receipt scanning / insights (default `gpt-4o-mini`) |
-| `OPENAI_ASSISTANT_MODEL` | No | Model for the coach (defaults to `OPENAI_MODEL` or `gpt-4.1-mini`) |
+| `OPENAI_MODEL` | No | Model for receipt scanning / insights (default `gpt-6-luna`) |
+| `OPENAI_ASSISTANT_MODEL` | No | Model for the coach (defaults to `OPENAI_MODEL` or `gpt-6-luna`) |
 | `RESEND_API_KEY` | Yes | Resend key for report/alert emails |
 | `ARCJET_KEY` | No | Enables rate limiting (disabled if unset) |
 | `INNGEST_EVENT_KEY` | Prod | Inngest event key |
